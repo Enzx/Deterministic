@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 using ConsoleCommon;
 using Deterministic.Network;
 
@@ -11,7 +8,7 @@ namespace ConsoleClient
 {
     class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
             TcpPeer peer = new TcpPeer();
             peer.Connect(IPAddress.Loopback, 50050);
@@ -20,13 +17,19 @@ namespace ConsoleClient
                 Console.WriteLine("Connected callback!");
 
                 Console.Write("Sending message...");
-                Task.Delay(1000);
-                ConsoleMessage message = new ConsoleMessage();
-                message.Text = "Hello, World!";
+                ConsoleMessage message = new ConsoleMessage { Text = "New Client!" };
                 peer.Send(message);
                 Console.WriteLine("Message Sent!");
             };
-           
+
+            string cmd = string.Empty;
+
+            while (cmd != "q")
+            {
+                cmd = Console.ReadLine();
+                peer.Send(new ConsoleMessage { Text = cmd });
+            }
+
             Console.ReadLine();
             peer.Disconnect();
         }

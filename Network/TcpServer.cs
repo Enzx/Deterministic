@@ -10,7 +10,7 @@ namespace Deterministic.Network
     {
         public event Action<TcpPeer> OnPeerConected;
 
-        private bool _isConnected;
+        private readonly bool _isConnected;
         private readonly TcpListener _listener;
         private readonly ConcurrentBag<TcpPeer> _peers;
 
@@ -19,7 +19,7 @@ namespace Deterministic.Network
             _listener = new TcpListener(IPAddress.Any, port);
             _peers = new ConcurrentBag<TcpPeer>();
             _isConnected = true;
-            Task.Run(() => StartAccept()).ConfigureAwait(false);
+            Task.Run(StartAccept).ConfigureAwait(false);
         }
 
 

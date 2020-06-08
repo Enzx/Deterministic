@@ -1,11 +1,6 @@
 ﻿using System;
-using System.Collections.Concurrent;
-using System.ComponentModel.Design.Serialization;
-using System.IO;
 using System.Net;
-using System.Net.Security;
 using System.Net.Sockets;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using ConsoleCommon;
@@ -55,7 +50,7 @@ namespace Deterministic.Network
             Close();
             OnDisconnect?.Invoke();
         }
-        private async Task ConnectAsync(IPAddress ip, int port, CancellationToken cancellationToken = default(CancellationToken))
+        private async Task ConnectAsync(IPAddress ip, int port, CancellationToken cancellationToken = default)
         {
 
             await CloseAsync();
@@ -78,9 +73,10 @@ namespace Deterministic.Network
             _isConnected = true;
             OnConnected?.Invoke();
 
-            var w = Task.Factory.StartNew(() =>
-            Receive(cancellationToken),
-            cancellationToken).ConfigureAwait(false);
+            _ = Task.Factory.StartNew(() =>
+                    Receive(cancellationToken),
+                    cancellationToken: cancellationToken)
+                    .ConfigureAwait(false);
 
         }
 
@@ -118,7 +114,7 @@ namespace Deterministic.Network
         #region Send
         public void Send(Packet packet)
         {
-            byte[] bytes = MessagePack.MessagePackSerializer.Serialize(packet);
+            byte[] bytes = MessagePackSerializer.Serialize(packet);
             int packetSize = bytes.Length;
             byte[] sizeBytes = BitConverter.GetBytes(packetSize);
 
@@ -129,7 +125,7 @@ namespace Deterministic.Network
             WriteBytes(buffer);
         }
 
-        private async void WriteBytes(byte[] bytes, CancellationToken cancelToken = default(CancellationToken))
+        private async void WriteBytes(byte[] bytes, CancellationToken cancelToken = default)
         {
             await _stream.WriteAsync(bytes, 0, bytes.Length, cancelToken)
                 .ContinueWith(task =>
@@ -145,7 +141,7 @@ namespace Deterministic.Network
         #endregion
 
         #region Receive
-        private async Task Receive(CancellationToken cancelToken = default(CancellationToken))
+        private async Task Receive(CancellationToken cancelToken = default)
         {
             Console.WriteLine($"Start Receiving");
 
@@ -153,7 +149,7 @@ namespace Deterministic.Network
             {
                 await CloseIfCanceled(cancelToken);
                 byte[] sizeBytes = await ReadBytes(4, cancelToken);
-                int size = 0;
+                int size;
                 try
                 {
                     size = BitConverter.ToInt32(sizeBytes, 0);
@@ -173,20 +169,22 @@ namespace Deterministic.Network
             }
         }
 
-        private async Task<byte[]> ReadBytes(int amount, CancellationToken cancelToken = default(CancellationToken))
+        private async Task<byte[]> ReadBytes(int amount, CancellationToken cancelToken = default)
         {
             Console.WriteLine($"Reading: {amount} bytes");
 
             if (amount == 0) return new byte[0];
             byte[] receiveBuffer = new byte[amount];
-            int recievedBytes = 0;
-            while (recievedBytes < amount)
+            int receivedBytes = 0;
+            while (receivedBytes < amount)
             {
                 cancelToken.ThrowIfCancellationRequested();
-                int remaining = amount - recievedBytes;
-                recievedBytes += await _stream.ReadAsync(receiveBuffer, recievedBytes, remaining, cancelToken).ConfigureAwait(false);
+                int remaining = amount - receivedBytes;
+                receivedBytes += await _stream
+                    .ReadAsync(receiveBuffer, receivedBytes, remaining, cancelToken)
+                    .ConfigureAwait(false);
             }
-            Console.WriteLine($"Received: {recievedBytes} bytes");
+            Console.WriteLine($"Received: {receivedBytes} bytes");
 
             return receiveBuffer;
         }
